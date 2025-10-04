@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/hero-lumeno.jpg";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden">
       {/* Background with gradient overlay */}
@@ -37,11 +40,20 @@ const Hero = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
-            <Button size="lg" className="group bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300">
+            <Button 
+              size="lg" 
+              onClick={() => navigate("/auth")}
+              className="group bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow transition-all duration-300"
+            >
               Start Selling Today
               <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button size="lg" variant="outline" className="border-2 hover:bg-secondary/10 hover:border-secondary transition-all duration-300">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              onClick={() => navigate("/products")}
+              className="border-2 hover:bg-secondary/10 hover:border-secondary transition-all duration-300"
+            >
               Explore Marketplace
             </Button>
           </div>
