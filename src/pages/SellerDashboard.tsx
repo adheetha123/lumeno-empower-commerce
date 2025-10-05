@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Package, ShoppingBag, Calendar, Settings, TrendingUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const SellerDashboard = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -19,6 +21,8 @@ const SellerDashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [addType, setAddType] = useState<"product" | "service">("product");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -107,6 +111,50 @@ const SellerDashboard = () => {
     } else {
       toast({ title: "Success", description: "Order status updated" });
       fetchDashboardData();
+    }
+  };
+
+  const addNewItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    if (addType === "product") {
+      const { error } = await supabase.from("products").insert({
+        seller_id: profile.id,
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        price: parseFloat(formData.get("price") as string),
+        stock: parseInt(formData.get("stock") as string) || 0,
+        is_organic: formData.get("is_organic") === "true",
+        image_url: formData.get("image_url") as string,
+        location: profile.location,
+      });
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Product added!" });
+        setIsAddDialogOpen(false);
+        fetchDashboardData();
+      }
+    } else {
+      const { error } = await supabase.from("services").insert({
+        provider_id: profile.id,
+        title: formData.get("title") as string,
+        description: formData.get("description") as string,
+        pricing_type: formData.get("pricing_type") as string,
+        price_per_hour: formData.get("pricing_type") === "hourly" ? parseFloat(formData.get("price") as string) : null,
+        fixed_price: formData.get("pricing_type") === "fixed" ? parseFloat(formData.get("price") as string) : null,
+        location: profile.location,
+      });
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Service added!" });
+        setIsAddDialogOpen(false);
+        fetchDashboardData();
+      }
     }
   };
 
@@ -230,18 +278,123 @@ const SellerDashboard = () => {
           <TabsContent value="products">
             <div className="flex justify-between mb-4">
               <h2 className="text-2xl font-bold">Your Products & Services</h2>
-              <Button onClick={() => navigate("/sell")}>Add New</Button>
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>Add New</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Add New {addType === "product" ? "Product" : "Service"}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={addNewItem} className="space-y-4">
+                    <div>
+                      <Label>Type</Label>
+                      <Select value={addType} onValueChange={(value: "product" | "service") => setAddType(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="product">Product</SelectItem>
+                          <SelectItem value="service">Service</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="title">Title</Label>
+                      <Input id="title" name="title" required />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="description">Description</Label>
+                      <Textarea id="description" name="description" required />
+                    </div>
+                    
+                    {addType === "product" ? (
+                      <>
+                        <div>
+                          <Label htmlFor="price">Price ($)</Label>
+                          <Input id="price" name="price" type="number" step="0.01" required />
+                        </div>
+                        <div>
+                          <Label htmlFor="stock">Stock</Label>
+                          <Input id="stock" name="stock" type="number" defaultValue="0" />
+                        </div>
+                        <div>
+                          <Label htmlFor="image_url">Image URL</Label>
+                          <Input id="image_url" name="image_url" type="url" />
+                        </div>
+                        <div>
+                          <Label htmlFor="is_organic">Organic</Label>
+                          <Select name="is_organic" defaultValue="false">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="true">Yes</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div>
+                          <Label htmlFor="pricing_type">Pricing Type</Label>
+                          <Select name="pricing_type" defaultValue="hourly">
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hourly">Hourly Rate</SelectItem>
+                              <SelectItem value="fixed">Fixed Price</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="price">Price ($)</Label>
+                          <Input id="price" name="price" type="number" step="0.01" required />
+                        </div>
+                      </>
+                    )}
+                    
+                    <Button type="submit" className="w-full">Add {addType === "product" ? "Product" : "Service"}</Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              {products.map((product) => (
-                <Card key={product.id}>
-                  <CardContent className="p-4">
-                    <h3 className="font-semibold">{product.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                    <p className="text-primary font-bold mt-2">${product.price}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Products</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {products.map((product) => (
+                    <Card key={product.id}>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold">{product.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                        <p className="text-primary font-bold mt-2">${product.price}</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-xl font-semibold mb-3">Services</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {services.map((service) => (
+                    <Card key={service.id}>
+                      <CardContent className="p-4">
+                        <h3 className="font-semibold">{service.title}</h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
+                        <p className="text-primary font-bold mt-2">
+                          ${service.pricing_type === "hourly" ? `${service.price_per_hour}/hr` : service.fixed_price}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             </div>
           </TabsContent>
 
