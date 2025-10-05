@@ -10,6 +10,9 @@ import Organic from "./pages/Organic";
 import Services from "./pages/Services";
 import NearMe from "./pages/NearMe";
 import NotFound from "./pages/NotFound";
+import SellerDashboard from "./pages/SellerDashboard";
+import SellerProfile from "./pages/SellerProfile";
+import Discover from "./pages/Discover";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,9 @@ const App = () => (
           <Route path="/organic" element={<Organic />} />
           <Route path="/services" element={<Services />} />
           <Route path="/near-me" element={<NearMe />} />
+          <Route path="/sell" element={<SellerDashboard />} />
+          <Route path="/seller/:sellerId" element={<SellerProfile />} />
+          <Route path="/discover" element={<Discover />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

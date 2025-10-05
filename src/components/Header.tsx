@@ -58,6 +58,7 @@ const Header = () => {
             <Link to="/organic" className="text-sm font-medium hover:text-secondary transition-colors">Organic</Link>
             <Link to="/services" className="text-sm font-medium hover:text-accent transition-colors">Services</Link>
             <Link to="/near-me" className="text-sm font-medium hover:text-primary transition-colors">Near Me</Link>
+            <Link to="/discover" className="text-sm font-medium hover:text-accent transition-colors">Discover</Link>
           </nav>
         </div>
 
