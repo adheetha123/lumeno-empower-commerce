@@ -34,11 +34,13 @@ const SellerDashboard = () => {
   }, []);
 
   const fetchDashboardData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
-    }
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        toast({ title: "Authentication required", description: "Please sign in to continue", variant: "destructive" });
+        navigate("/auth");
+        return;
+      }
 
     const { data: profileData } = await supabase
       .from("profiles")
@@ -73,12 +75,17 @@ const SellerDashboard = () => {
       .select("*, user:user_id(full_name), service:service_id(title)")
       .eq("provider_id", user.id);
 
-    setProfile(profileData);
-    setProducts(productsData || []);
-    setServices(servicesData || []);
-    setOrders(ordersData || []);
-    setBookings(bookingsData || []);
-    setLoading(false);
+      setProfile(profileData);
+      setProducts(productsData || []);
+      setServices(servicesData || []);
+      setOrders(ordersData || []);
+      setBookings(bookingsData || []);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast({ title: "Error", description: "Failed to load dashboard. Please sign in again.", variant: "destructive" });
+      navigate("/auth");
+    }
   };
 
   const updateStoreSettings = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -171,45 +178,57 @@ const SellerDashboard = () => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    if (editType === "product") {
-      const { error } = await supabase
-        .from("products")
-        .update({
-          title: formData.get("title") as string,
-          description: formData.get("description") as string,
-          price: parseFloat(formData.get("price") as string),
-          stock: parseInt(formData.get("stock") as string) || 0,
-          is_organic: formData.get("is_organic") === "true",
-          image_url: formData.get("image_url") as string,
-        })
-        .eq("id", editingItem.id);
-      
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Success", description: "Product updated!" });
-        setIsEditDialogOpen(false);
-        fetchDashboardData();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Authentication required", description: "Please sign in to continue", variant: "destructive" });
+        navigate("/auth");
+        return;
       }
-    } else {
-      const { error } = await supabase
-        .from("services")
-        .update({
-          title: formData.get("title") as string,
-          description: formData.get("description") as string,
-          pricing_type: formData.get("pricing_type") as string,
-          price_per_hour: formData.get("pricing_type") === "hourly" ? parseFloat(formData.get("price") as string) : null,
-          fixed_price: formData.get("pricing_type") === "fixed" ? parseFloat(formData.get("price") as string) : null,
-        })
-        .eq("id", editingItem.id);
-      
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
+
+      if (editType === "product") {
+        const { error } = await supabase
+          .from("products")
+          .update({
+            title: formData.get("title") as string,
+            description: formData.get("description") as string,
+            price: parseFloat(formData.get("price") as string),
+            stock: parseInt(formData.get("stock") as string) || 0,
+            is_organic: formData.get("is_organic") === "true",
+            image_url: formData.get("image_url") as string,
+          })
+          .eq("id", editingItem.id);
+        
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Success", description: "Product updated!" });
+          setIsEditDialogOpen(false);
+          fetchDashboardData();
+        }
       } else {
-        toast({ title: "Success", description: "Service updated!" });
-        setIsEditDialogOpen(false);
-        fetchDashboardData();
+        const { error } = await supabase
+          .from("services")
+          .update({
+            title: formData.get("title") as string,
+            description: formData.get("description") as string,
+            pricing_type: formData.get("pricing_type") as string,
+            price_per_hour: formData.get("pricing_type") === "hourly" ? parseFloat(formData.get("price") as string) : null,
+            fixed_price: formData.get("pricing_type") === "fixed" ? parseFloat(formData.get("price") as string) : null,
+          })
+          .eq("id", editingItem.id);
+        
+        if (error) {
+          toast({ title: "Error", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Success", description: "Service updated!" });
+          setIsEditDialogOpen(false);
+          fetchDashboardData();
+        }
       }
+    } catch (error) {
+      console.error("Error updating item:", error);
+      toast({ title: "Error", description: "Failed to update. Please try signing in again.", variant: "destructive" });
     }
   };
 
