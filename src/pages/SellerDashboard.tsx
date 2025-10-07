@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Package, ShoppingBag, Calendar, Settings, TrendingUp } from "lucide-react";
+import { Package, ShoppingBag, Calendar, Settings, TrendingUp, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -22,7 +22,10 @@ const SellerDashboard = () => {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [addType, setAddType] = useState<"product" | "service">("product");
+  const [editType, setEditType] = useState<"product" | "service">("product");
+  const [editingItem, setEditingItem] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -158,6 +161,72 @@ const SellerDashboard = () => {
     }
   };
 
+  const openEditDialog = (item: any, type: "product" | "service") => {
+    setEditingItem(item);
+    setEditType(type);
+    setIsEditDialogOpen(true);
+  };
+
+  const editItem = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    if (editType === "product") {
+      const { error } = await supabase
+        .from("products")
+        .update({
+          title: formData.get("title") as string,
+          description: formData.get("description") as string,
+          price: parseFloat(formData.get("price") as string),
+          stock: parseInt(formData.get("stock") as string) || 0,
+          is_organic: formData.get("is_organic") === "true",
+          image_url: formData.get("image_url") as string,
+        })
+        .eq("id", editingItem.id);
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Product updated!" });
+        setIsEditDialogOpen(false);
+        fetchDashboardData();
+      }
+    } else {
+      const { error } = await supabase
+        .from("services")
+        .update({
+          title: formData.get("title") as string,
+          description: formData.get("description") as string,
+          pricing_type: formData.get("pricing_type") as string,
+          price_per_hour: formData.get("pricing_type") === "hourly" ? parseFloat(formData.get("price") as string) : null,
+          fixed_price: formData.get("pricing_type") === "fixed" ? parseFloat(formData.get("price") as string) : null,
+        })
+        .eq("id", editingItem.id);
+      
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Success", description: "Service updated!" });
+        setIsEditDialogOpen(false);
+        fetchDashboardData();
+      }
+    }
+  };
+
+  const deleteItem = async (id: string, type: "product" | "service") => {
+    if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+    
+    const table = type === "product" ? "products" : "services";
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: `${type} deleted!` });
+      fetchDashboardData();
+    }
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
   return (
@@ -237,7 +306,7 @@ const SellerDashboard = () => {
                     <div>
                       <p className="font-semibold">Order #{order.id.slice(0, 8)}</p>
                       <p className="text-sm text-muted-foreground">Buyer: {order.buyer?.full_name}</p>
-                      <p className="text-sm">Amount: ${order.total_amount}</p>
+                      <p className="text-sm">Amount: ₹{order.total_amount}</p>
                       <p className="text-sm">Status: {order.status}</p>
                     </div>
                     <div className="flex gap-2">
@@ -313,7 +382,7 @@ const SellerDashboard = () => {
                     {addType === "product" ? (
                       <>
                         <div>
-                          <Label htmlFor="price">Price ($)</Label>
+                          <Label htmlFor="price">Price (₹)</Label>
                           <Input id="price" name="price" type="number" step="0.01" required />
                         </div>
                         <div>
@@ -352,7 +421,7 @@ const SellerDashboard = () => {
                           </Select>
                         </div>
                         <div>
-                          <Label htmlFor="price">Price ($)</Label>
+                          <Label htmlFor="price">Price (₹)</Label>
                           <Input id="price" name="price" type="number" step="0.01" required />
                         </div>
                       </>
@@ -370,9 +439,19 @@ const SellerDashboard = () => {
                   {products.map((product) => (
                     <Card key={product.id}>
                       <CardContent className="p-4">
-                        <h3 className="font-semibold">{product.title}</h3>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold">{product.title}</h3>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => openEditDialog(product, "product")}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteItem(product.id, "product")}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                        <p className="text-primary font-bold mt-2">${product.price}</p>
+                        <p className="text-primary font-bold mt-2">₹{product.price}</p>
                       </CardContent>
                     </Card>
                   ))}
@@ -385,10 +464,20 @@ const SellerDashboard = () => {
                   {services.map((service) => (
                     <Card key={service.id}>
                       <CardContent className="p-4">
-                        <h3 className="font-semibold">{service.title}</h3>
+                        <div className="flex justify-between items-start mb-2">
+                          <h3 className="font-semibold">{service.title}</h3>
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="ghost" onClick={() => openEditDialog(service, "service")}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => deleteItem(service.id, "service")}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
                         <p className="text-sm text-muted-foreground line-clamp-2">{service.description}</p>
                         <p className="text-primary font-bold mt-2">
-                          ${service.pricing_type === "hourly" ? `${service.price_per_hour}/hr` : service.fixed_price}
+                          ₹{service.pricing_type === "hourly" ? `${service.price_per_hour}/hr` : service.fixed_price}
                         </p>
                       </CardContent>
                     </Card>
@@ -396,6 +485,82 @@ const SellerDashboard = () => {
                 </div>
               </div>
             </div>
+            
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit {editType === "product" ? "Product" : "Service"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={editItem} className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-title">Title</Label>
+                    <Input id="edit-title" name="title" defaultValue={editingItem?.title} required />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="edit-description">Description</Label>
+                    <Textarea id="edit-description" name="description" defaultValue={editingItem?.description} required />
+                  </div>
+                  
+                  {editType === "product" ? (
+                    <>
+                      <div>
+                        <Label htmlFor="edit-price">Price (₹)</Label>
+                        <Input id="edit-price" name="price" type="number" step="0.01" defaultValue={editingItem?.price} required />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-stock">Stock</Label>
+                        <Input id="edit-stock" name="stock" type="number" defaultValue={editingItem?.stock} />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-image_url">Image URL</Label>
+                        <Input id="edit-image_url" name="image_url" type="url" defaultValue={editingItem?.image_url} />
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-is_organic">Organic</Label>
+                        <Select name="is_organic" defaultValue={editingItem?.is_organic ? "true" : "false"}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="true">Yes</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <Label htmlFor="edit-pricing_type">Pricing Type</Label>
+                        <Select name="pricing_type" defaultValue={editingItem?.pricing_type}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="hourly">Hourly Rate</SelectItem>
+                            <SelectItem value="fixed">Fixed Price</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-price">Price (₹)</Label>
+                        <Input 
+                          id="edit-price" 
+                          name="price" 
+                          type="number" 
+                          step="0.01" 
+                          defaultValue={editingItem?.pricing_type === "hourly" ? editingItem?.price_per_hour : editingItem?.fixed_price} 
+                          required 
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  <Button type="submit" className="w-full">Update {editType === "product" ? "Product" : "Service"}</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           <TabsContent value="settings">
