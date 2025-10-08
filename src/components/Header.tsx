@@ -106,7 +106,7 @@ const Header = () => {
               onClick={() => navigate("/sell")}
               className="hidden md:flex bg-gradient-to-r from-primary to-primary-glow hover:shadow-soft transition-all duration-300"
             >
-              Start Selling
+              Seller Dashboard
             </Button>
           ) : (
             <Button 

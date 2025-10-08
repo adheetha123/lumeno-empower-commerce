@@ -137,7 +137,7 @@ const Organic = () => {
                     by {product.profiles?.full_name || "Unknown Farmer"}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-secondary">${product.price}</span>
+                    <span className="text-lg font-bold text-secondary">₹{product.price}</span>
                     <Button 
                       size="sm" 
                       onClick={() => addToCart(product.id)}

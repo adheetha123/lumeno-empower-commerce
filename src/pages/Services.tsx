@@ -135,10 +135,10 @@ const Services = () => {
                   <div className="flex items-center justify-between pt-4 border-t border-border">
                     <div>
                       {service.pricing_type === "hourly" && (
-                        <span className="text-lg font-bold text-accent">${service.price_per_hour}/hr</span>
+                        <span className="text-lg font-bold text-accent">₹{service.price_per_hour}/hr</span>
                       )}
                       {service.pricing_type === "fixed" && (
-                        <span className="text-lg font-bold text-accent">${service.fixed_price}</span>
+                        <span className="text-lg font-bold text-accent">₹{service.fixed_price}</span>
                       )}
                       {service.pricing_type === "negotiable" && (
                         <span className="text-lg font-bold text-accent">Negotiable</span>

@@ -128,7 +128,7 @@ const Products = () => {
                     <span>{product.location || "Location not specified"}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-lg font-bold text-primary">${product.price}</span>
+                    <span className="text-lg font-bold text-primary">₹{product.price}</span>
                     <Button 
                       size="sm" 
                       onClick={() => addToCart(product.id)}
