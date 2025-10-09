@@ -3,7 +3,7 @@ import Hero from "@/components/Hero";
 import Categories from "@/components/Categories";
 import HowItWorks from "@/components/HowItWorks";
 import FeaturedSellers from "@/components/FeaturedSellers";
-import ChatbotPreview from "@/components/ChatbotPreview";
+
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -17,7 +17,7 @@ const Index = () => {
         <FeaturedSellers />
       </main>
       <Footer />
-      <ChatbotPreview />
+      
     </div>
   );
 };
